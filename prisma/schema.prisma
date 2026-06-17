@@ -1,0 +1,358 @@
+generator client {
+  provider        = "prisma-client-js"
+  previewFeatures = ["postgresqlExtensions"]
+}
+
+datasource db {
+  provider   = "postgresql"
+  url        = env("DATABASE_URL")
+  directUrl  = env("DIRECT_URL")
+  extensions = [vector]
+}
+
+// ============================================================
+// IDENTITY
+// ============================================================
+
+model User {
+  id       String  @id @default(cuid())
+  clerkId  String  @unique
+  email    String  @unique
+  name     String?
+  imageUrl String?
+
+  // Corsair tenant id for this user (we use our own user id as the tenant id)
+  corsairTenantId String? @unique
+
+  themePreference String  @default("system") // light | dark | system
+  onboarded       Boolean @default(false)
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  connectedAccounts ConnectedAccount[]
+  emailAnalyses     EmailAnalysis[]
+  meetingBriefs     MeetingBrief[]
+  tasks             Task[]
+  chatSessions      ChatSession[]
+  workspaces        Workspace[]
+  auditLogs         AuditLog[]
+  workflowRuns      WorkflowRun[]
+  githubAnalyses    GitHubAnalysis[]
+  jiraAnalyses      JiraAnalysis[]
+  notionAnalyses    NotionAnalysis[]
+
+  @@index([clerkId])
+}
+
+// Tracks which Corsair plugins a user has connected
+model ConnectedAccount {
+  id     String @id @default(cuid())
+  userId String
+  user   User   @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  pluginId     String // gmail | googlecalendar | github | jira | notion
+  status       String    @default("connected") // connected | error | disconnected
+  connectedAt  DateTime  @default(now())
+  lastSyncedAt DateTime?
+  errorMessage String?
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  @@unique([userId, pluginId])
+  @@index([userId])
+}
+
+// ============================================================
+// EMAIL ANALYSIS (raw email lives in Corsair; we store only AI output)
+// ============================================================
+
+model EmailAnalysis {
+  id     String @id @default(cuid())
+  userId String
+  user   User   @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  // The email's id inside Corsair's synced db (provider message id)
+  corsairMessageId String
+  threadId         String?
+
+  summaryShort     String?
+  summaryLong      String?
+  category         String? // primary | promotions | spam (Gmail native)
+  urgency          String? // urgent | reply | info | low (drives the colored dot)
+  needsReply       Boolean   @default(false)
+  isMeetingRequest Boolean   @default(false)
+  sentiment        String?
+  urgencyReason    String?
+  suggestedActions Json?
+  deadlineDetected DateTime?
+  peopleMentioned  Json?
+
+  confidence Float?
+  modelUsed  String?
+  analyzedAt DateTime @default(now())
+
+  @@unique([userId, corsairMessageId])
+  @@index([userId])
+  @@index([userId, category])
+}
+
+// ============================================================
+// MEETING BRIEFS (calendar event lives in Corsair; we store the brief)
+// ============================================================
+
+model MeetingBrief {
+  id     String @id @default(cuid())
+  userId String
+  user   User   @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  corsairEventId String
+
+  summary            String?
+  agenda             Json?
+  mustAttendScore    Int? // 0-100
+  mustAttendReason   String?
+  preparationNotes   Json?
+  relatedEmails      Json?
+  relatedTasks       Json?
+  relatedJiraIssues  Json?
+  relatedGitHubPRs   Json?
+  relatedNotionPages Json?
+  followUpDraft      String?
+
+  modelUsed   String?
+  generatedAt DateTime @default(now())
+
+  @@unique([userId, corsairEventId])
+  @@index([userId])
+}
+
+// ============================================================
+// TASKS (fully ours - the Todo page)
+// ============================================================
+
+model Task {
+  id     String @id @default(cuid())
+  userId String
+  user   User   @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  title       String
+  description String?
+  status      String  @default("pending") // pending | done
+  priority    String  @default("normal") // low | normal | high | urgent
+
+  dueDate DateTime?
+  dueTime String? // "20:00" optional time-of-day
+
+  // Where this task came from
+  sourceType String  @default("manual") // manual | ai | email | calendar | github | jira | notion
+  sourceId   String? // id of the originating item, if any
+
+  // If this task also created a calendar event in Google Calendar via Corsair
+  corsairEventId String?
+
+  workspaceId String?
+  workspace   Workspace? @relation(fields: [workspaceId], references: [id], onDelete: SetNull)
+
+  completedAt DateTime?
+  createdAt   DateTime  @default(now())
+  updatedAt   DateTime  @updatedAt
+
+  @@index([userId])
+  @@index([userId, status])
+  @@index([userId, dueDate])
+}
+
+// ============================================================
+// GITHUB / JIRA / NOTION ANALYSIS (raw data in Corsair; AI output here)
+// ============================================================
+
+model GitHubAnalysis {
+  id     String @id @default(cuid())
+  userId String
+  user   User   @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  corsairItemId String // PR or issue id in Corsair
+  itemType      String // pull_request | issue
+
+  summary          String?
+  risk             String?
+  reviewNeeded     Boolean @default(false)
+  blockers         Json?
+  suggestedActions Json?
+
+  modelUsed  String?
+  analyzedAt DateTime @default(now())
+
+  @@unique([userId, corsairItemId])
+  @@index([userId])
+}
+
+model JiraAnalysis {
+  id     String @id @default(cuid())
+  userId String
+  user   User   @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  corsairIssueId String
+
+  summary             String?
+  urgency             String?
+  blockerStatus       String?
+  businessImpact      String?
+  suggestedNextAction String?
+
+  modelUsed  String?
+  analyzedAt DateTime @default(now())
+
+  @@unique([userId, corsairIssueId])
+  @@index([userId])
+}
+
+model NotionAnalysis {
+  id     String @id @default(cuid())
+  userId String
+  user   User   @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  corsairPageId String
+
+  summary     String?
+  keyPoints   Json?
+  actionItems Json?
+
+  modelUsed      String?
+  lastAnalyzedAt DateTime @default(now())
+
+  @@unique([userId, corsairPageId])
+  @@index([userId])
+}
+
+// ============================================================
+// WORKSPACES (future-ready project buckets)
+// ============================================================
+
+model Workspace {
+  id     String @id @default(cuid())
+  userId String
+  user   User   @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  name        String
+  description String?
+  color       String?
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  items WorkspaceItem[]
+  tasks Task[]
+
+  @@index([userId])
+}
+
+model WorkspaceItem {
+  id          String    @id @default(cuid())
+  workspaceId String
+  workspace   Workspace @relation(fields: [workspaceId], references: [id], onDelete: Cascade)
+
+  itemType String // email | calendar_event | github_pr | github_issue | jira_issue | notion_page
+  itemId   String // corsair id of the linked item
+
+  note    String?
+  addedAt DateTime @default(now())
+
+  @@index([workspaceId])
+}
+
+// ============================================================
+// AI CHAT (Nexus AI)
+// ============================================================
+
+model ChatSession {
+  id     String @id @default(cuid())
+  userId String
+  user   User   @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  title     String?
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  messages ChatMessage[]
+
+  @@index([userId])
+}
+
+model ChatMessage {
+  id        String      @id @default(cuid())
+  sessionId String
+  session   ChatSession @relation(fields: [sessionId], references: [id], onDelete: Cascade)
+
+  role    String // user | assistant | system
+  content String
+
+  // For assistant messages: what data was used and what actions were taken
+  contextSnapshot Json?
+  toolCalls       Json?
+
+  createdAt DateTime @default(now())
+
+  @@index([sessionId])
+}
+
+// ============================================================
+// SEARCH INDEX (semantic search via pgvector)
+// Populated from synced content so search is local + sub-second
+// ============================================================
+
+model SearchIndex {
+  id     String @id @default(cuid())
+  userId String
+
+  // What this row points to in Corsair
+  itemType String // email | calendar_event | github_pr | github_issue | jira_issue | notion_page | task
+  itemId   String
+
+  // Searchable text + its embedding vector (1536 dims for text-embedding-3-small)
+  content   String
+  embedding Unsupported("vector(1536)")?
+
+  createdAt DateTime @default(now())
+
+  @@unique([userId, itemType, itemId])
+  @@index([userId])
+  @@index([userId, itemType])
+}
+
+// ============================================================
+// WORKFLOW + AUDIT LOGS (every important action)
+// ============================================================
+
+model WorkflowRun {
+  id     String @id @default(cuid())
+  userId String
+  user   User   @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  command String // human-readable description of what was requested
+  status  String  @default("running") // running | success | failed
+  steps   Json?
+  result  Json?
+  error   String?
+
+  createdAt   DateTime  @default(now())
+  completedAt DateTime?
+
+  @@index([userId])
+}
+
+model AuditLog {
+  id     String @id @default(cuid())
+  userId String
+  user   User   @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  action String // email_sent | event_created | task_created | meeting_declined | ...
+  detail Json?
+
+  createdAt DateTime @default(now())
+
+  @@index([userId])
+  @@index([userId, action])
+}

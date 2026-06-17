@@ -1,26 +1,174 @@
 @import "tailwindcss";
 
-:root {
-  --background: #ffffff;
-  --foreground: #171717;
+/* ============================================================
+   NEXUS DESIGN SYSTEM — "Slate & Signal"
+   Pure-white light mode (GitHub / Notion style).
+   Deep-slate dark mode. Fully distinct, no toggle bugs.
+   ============================================================ */
+
+/* LIGHT (default) — applies to :root and .light */
+:root,
+.light {
+  --bg: #ffffff;
+  --surface: #ffffff;
+  --surface-2: #f6f7f9;
+  --border: #e9ebef;
+  --border-strong: #d6d9df;
+
+  --text: #131720;
+  --text-muted: #5c6470;
+  --text-faint: #98a0ac;
+
+  --signal: #2d7387;
+  --signal-hover: #225a6b;
+  --signal-soft: #e4eff1;
+  --signal-text: #1c4e5b;
+
+  --urgent: #e5484d;
+  --reply: #d9a400;
+  --info: #2ba868;
+  --low: #3b82f6;
+
+  --danger: #dc2626;
+  --danger-soft: #fef2f2;
+  --success: #16a34a;
+  --warning: #d97706;
+
+  --radius-sm: 6px;
+  --radius: 8px;
+  --radius-lg: 12px;
+  --radius-xl: 16px;
+
+  --shadow-sm: 0 1px 2px rgba(16, 24, 40, 0.05);
+  --shadow: 0 4px 14px rgba(16, 24, 40, 0.08);
+  --shadow-lg: 0 14px 40px rgba(16, 24, 40, 0.14);
+
+  --font-sans: var(--font-inter), ui-sans-serif, system-ui, sans-serif;
+  --font-mono: var(--font-jetbrains), ui-monospace, "SF Mono", monospace;
+
+  color-scheme: light;
 }
 
+/* DARK */
+.dark {
+  --bg: #0b0c0f;
+  --surface: #131519;
+  --surface-2: #1a1d23;
+  --border: #242830;
+  --border-strong: #323742;
+
+  --text: #edeef1;
+  --text-muted: #969ba6;
+  --text-faint: #5e636e;
+
+  --signal: #5bb8cd;
+  --signal-hover: #6fc6d9;
+  --signal-soft: #15282e;
+  --signal-text: #a3dde9;
+
+  --urgent: #ff6166;
+  --reply: #f5cb47;
+  --info: #4ad28a;
+  --low: #6098f7;
+
+  --danger: #f87171;
+  --danger-soft: #2a1515;
+  --success: #4ade80;
+  --warning: #fbbf24;
+
+  --shadow-sm: 0 1px 2px rgba(0, 0, 0, 0.4);
+  --shadow: 0 4px 14px rgba(0, 0, 0, 0.5);
+  --shadow-lg: 0 14px 40px rgba(0, 0, 0, 0.6);
+
+  color-scheme: dark;
+}
+
+/* Expose tokens to Tailwind v4 utilities */
 @theme inline {
-  --color-background: var(--background);
-  --color-foreground: var(--foreground);
-  --font-sans: var(--font-geist-sans);
-  --font-mono: var(--font-geist-mono);
+  --color-bg: var(--bg);
+  --color-surface: var(--surface);
+  --color-surface-2: var(--surface-2);
+  --color-border: var(--border);
+  --color-border-strong: var(--border-strong);
+  --color-text: var(--text);
+  --color-text-muted: var(--text-muted);
+  --color-text-faint: var(--text-faint);
+  --color-signal: var(--signal);
+  --color-signal-hover: var(--signal-hover);
+  --color-signal-soft: var(--signal-soft);
+  --color-signal-text: var(--signal-text);
+  --color-urgent: var(--urgent);
+  --color-reply: var(--reply);
+  --color-info: var(--info);
+  --color-low: var(--low);
+  --color-danger: var(--danger);
+  --color-danger-soft: var(--danger-soft);
+  --color-success: var(--success);
+  --color-warning: var(--warning);
+
+  --radius-sm: var(--radius-sm);
+  --radius: var(--radius);
+  --radius-lg: var(--radius-lg);
+  --radius-xl: var(--radius-xl);
+
+  --font-sans: var(--font-sans);
+  --font-mono: var(--font-mono);
 }
 
-@media (prefers-color-scheme: dark) {
-  :root {
-    --background: #0a0a0a;
-    --foreground: #ededed;
-  }
+* {
+  border-color: var(--border);
+}
+
+html {
+  -webkit-font-smoothing: antialiased;
+  -moz-osx-font-smoothing: grayscale;
 }
 
 body {
-  background: var(--background);
-  color: var(--foreground);
-  font-family: Arial, Helvetica, sans-serif;
+  background: var(--bg);
+  color: var(--text);
+  font-family: var(--font-sans);
+  font-feature-settings: "cv02", "cv03", "cv04", "cv11";
+  transition:
+    background-color 0.15s ease,
+    color 0.15s ease;
+}
+
+/* Numbers, counts, timestamps, shortcuts render in mono — the signature */
+.tabular {
+  font-family: var(--font-mono);
+  font-variant-numeric: tabular-nums;
+}
+
+/* Scrollbar */
+::-webkit-scrollbar {
+  width: 10px;
+  height: 10px;
+}
+::-webkit-scrollbar-track {
+  background: transparent;
+}
+::-webkit-scrollbar-thumb {
+  background: var(--border-strong);
+  border-radius: 999px;
+  border: 2px solid var(--bg);
+}
+::-webkit-scrollbar-thumb:hover {
+  background: var(--text-faint);
+}
+
+/* Accessible focus ring — signal-colored */
+:focus-visible {
+  outline: 2px solid var(--signal);
+  outline-offset: 2px;
+}
+
+/* Respect reduced motion */
+@media (prefers-reduced-motion: reduce) {
+  *,
+  *::before,
+  *::after {
+    animation-duration: 0.01ms !important;
+    transition-duration: 0.01ms !important;
+  }
 }
