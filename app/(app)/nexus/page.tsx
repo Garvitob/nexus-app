@@ -1,14 +1,17 @@
-export default function NexusPage() {
+import { Suspense } from "react";
+import { requireUser } from "@/lib/auth";
+import { NexusLayout } from "@/components/features/nexus/nexus-layout";
+
+export const metadata = {
+  title: "Nexus AI — Nexus",
+};
+
+export default async function NexusPage() {
+  await requireUser();
+
   return (
-    <div className="flex h-full items-center justify-center p-8">
-      <div className="text-center">
-        <h1 className="text-2xl font-semibold tracking-tight text-[var(--text)]">
-          Nexus AI
-        </h1>
-        <p className="mt-2 text-[14px] text-[var(--text-muted)]">
-          Your AI work command center. We&apos;ll build the chat here next.
-        </p>
-      </div>
-    </div>
+    <Suspense>
+      <NexusLayout />
+    </Suspense>
   );
 }
