@@ -220,3 +220,54 @@ kbd {
   font-family: var(--font-mono);
   font-size: 10px;
 }
+
+/* ============================================================
+   LANDING PAGE ADDITIONS
+   Appended below — zero conflicts with tokens above.
+   ============================================================ */
+
+html {
+  scroll-behavior: smooth;
+}
+
+/* Shimmer animation for hero headline gradient text */
+@keyframes nx-shimmer {
+  0%   { background-position: 0% center; }
+  100% { background-position: 200% center; }
+}
+
+/* Ambient orb pulse — used by hero and CTA background blobs */
+@keyframes nx-orb-pulse {
+  0%, 100% { opacity: 0.06; transform: scale(1); }
+  50%       { opacity: 0.10; transform: scale(1.04); }
+}
+
+/* Cursor blink — used in hero terminal */
+@keyframes nx-blink {
+  0%, 100% { opacity: 1; }
+  50%       { opacity: 0; }
+}
+
+/* Orb utility class */
+.nx-orb {
+  animation: nx-orb-pulse 5s ease-in-out infinite;
+  pointer-events: none;
+  border-radius: 9999px;
+}
+
+/* Blinking cursor utility */
+.nx-cursor {
+  display: inline-block;
+  width: 2px;
+  height: 1.1em;
+  margin-left: 2px;
+  vertical-align: middle;
+  background: var(--signal);
+  animation: nx-blink 1s step-end infinite;
+}
+
+/* Disable landing animations when user prefers reduced motion */
+@media (prefers-reduced-motion: reduce) {
+  .nx-orb    { animation: none !important; opacity: 0.06 !important; }
+  .nx-cursor { animation: none !important; opacity: 1 !important; }
+}
